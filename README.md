@@ -13,7 +13,7 @@ curl -X POST http://localhost:8080/counter/increment -H "Content-Type: applicati
 curl -X POST http://localhost:8080/counter/value -H "Content-Type: application/json" -d '{"name": "name1"}'
 
 ### Delete counter
-curl -X DELETE http://localhost:8080/counter/value -H "Content-Type: application/json" -d '{"name": "name1"}'
+curl -X DELETE http://localhost:8080/counter/delete -H "Content-Type: application/json" -d '{"name": "name1"}'
 
 ### Get sum of all counters 
 curl -X GET http://localhost:8080/group/sum
