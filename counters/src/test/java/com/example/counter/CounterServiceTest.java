@@ -3,85 +3,111 @@ package com.example.counter;
 import com.example.counter.service.CounterService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest
 class CounterServiceTest {
 
-    @Autowired
-    CounterService counterService;
+    private final CounterService counterService = new CounterService();
 
     @AfterEach
     public void clear() {
         var names = counterService.names();
-        for(var name : names) {
-            counterService.delete(name);
+            for(var name : names) {
+                counterService.delete(name);
         }
     }
 
     @Test
-    public void createCounterTest() {
+    public void createCounterNameDoesNotExistTest() {
         var counter = "name1";
-        var result = counterService.create(counter);
-        assertThat(result.isPresent());
-        assertThat(result.orElse(null))
-                .isEqualTo(1);
+        int result = counterService.create(counter);
+        assertThat(result).isEqualTo(1);
+    }
 
-        result = counterService.create(counter);
-        assertThat(result.isEmpty());
+    @Test
+    public void createCounterNameAlreadyExistsTest() {
+        var counter = "name1";
+        counterService.create(counter);
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            counterService.create(counter);
+        });
+
+        String expectedMessage = "Counter already exists";
+        String actualMessage = exception.getMessage();
+        assertTrue(actualMessage.contains(expectedMessage));
     }
 
     @Test
     public void incrementCounterTest() {
         var counter = "name1";
-        var result = counterService.create(counter);
-        assertThat(result.isPresent());
-        for(int i = 0; i < 10; ++i) {
+        int result = counterService.create(counter);
+        for (int i = 0; i < 10; ++i) {
             result = counterService.increment(counter);
         }
-        assertThat(result.isPresent());
-        assertThat(result.get()).isEqualTo(11);
+        assertThat(result).isEqualTo(11);
+    }
+
+    @Test
+    public void incrementUnknownCounterTest() {
+        var counter = "name1";
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            counterService.increment(counter);
+        });
+
+        String expectedMessage = "Unknown counter";
+        String actualMessage = exception.getMessage();
+        assertTrue(actualMessage.contains(expectedMessage));
     }
 
     @Test
     public void deleteCounterTest() {
         var counter = "name1";
-        var result = counterService.create(counter);
-        assertThat(result.isPresent());
+        counterService.create(counter);
+        counterService.delete(counter);
+    }
 
-        var deletionRes = counterService.delete(counter);
-        assertThat(deletionRes);
-        deletionRes = counterService.delete(counter);
-        assertThat(!deletionRes);
+    @Test
+    public void deleteUnknownCounterTest() {
+        var counter = "name1";
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            counterService.delete(counter);
+        });
+
+        String expectedMessage = "Unknown counter";
+        String actualMessage = exception.getMessage();
+        assertTrue(actualMessage.contains(expectedMessage));
     }
 
     @Test
     public void getCounterValueTest() {
         var counter = "name1";
+        counterService.create(counter);
         var result = counterService.get(counter);
-        assertThat(result.isEmpty());
+        assertThat(result).isEqualTo(1);
+    }
 
-        result = counterService.create(counter);
-        assertThat(result.isPresent());
+    @Test
+    public void getUnknownCounterValueTest() {
+        var counter = "name1";
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            counterService.get(counter);
+        });
 
-        result = counterService.get(counter);
-        assertThat(result.isPresent());
-        assertThat(result.orElse(null)).isEqualTo(1);
+        String expectedMessage = "Unknown counter";
+        String actualMessage = exception.getMessage();
+        assertTrue(actualMessage.contains(expectedMessage));
     }
 
     @Test
     public void sumCountersTest() {
-        Optional<Integer> result;
         for(int i = 0; i < 10; ++i) {
-            result = counterService.create(Integer.toString(i));
-            assertThat(result.isPresent());
+            counterService.create(Integer.toString(i));
         }
         var sum = counterService.sum();
         assertThat(sum).isEqualTo(10);
@@ -89,16 +115,13 @@ class CounterServiceTest {
 
     @Test
     public void getCountersNamesTest() {
-        Optional<Integer> result;
         Set<String> names = new HashSet<>();
-        for(int i = 0; i < 10; ++i) {
+        for (int i = 0; i < 10; ++i) {
             var counter = Integer.toString(i);
             names.add(counter);
-            result = counterService.create(counter);
-            assertThat(result.isPresent());
+            counterService.create(counter);
         }
         var resNames = counterService.names();
         assertThat(names).allMatch(resNames::contains);
     }
-
 }

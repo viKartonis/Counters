@@ -1,48 +1,52 @@
 package com.example.counter.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class CounterService {
 
-    private final ConcurrentHashMap<String, AtomicInteger> counters;
+    private final ConcurrentHashMap<String, Integer> counters;
 
-    @Autowired
     public CounterService() {
         counters = new ConcurrentHashMap<>();
     }
 
-    public Optional<Integer> create(String name) {
-        var oldValue = counters.putIfAbsent(name, new AtomicInteger(1));
-        return oldValue == null ? Optional.of(1) : Optional.empty();
+    public int create(String name) throws IllegalArgumentException {
+        var oldValue = counters.putIfAbsent(name, 1);
+        if(oldValue != null) {
+            throw new IllegalArgumentException("Counter already exists");
+        }
+        return 1;
     }
 
-    public Optional<Integer> increment(String name) {
-        AtomicInteger localCounterValue = new AtomicInteger();
-        var computeResult = counters.computeIfPresent(name, (key, val) -> {
-            localCounterValue.set(val.incrementAndGet());
-            return val;
-        });
-        return computeResult != null ? Optional.of(localCounterValue.intValue()) : Optional.empty();
+    public int increment(String name) throws IllegalArgumentException {
+        var computeResult = counters.computeIfPresent(name, (key, val) -> val + 1);
+        if(computeResult == null) {
+            throw new IllegalArgumentException("Unknown counter");
+        }
+        return computeResult;
     }
 
-    public Optional<Integer> get(String name) {
+    public int get(String name) throws IllegalArgumentException {
         var value = counters.get(name);
-        return value == null ? Optional.empty() : Optional.of(value.intValue());
+        if(value == null) {
+            throw new IllegalArgumentException("Unknown counter");
+        }
+        return value;
     }
 
-    public boolean delete(String name) {
-        return counters.remove(name) != null;
+    public void delete(String name) throws IllegalArgumentException {
+        if (counters.remove(name) == null) {
+            throw new IllegalArgumentException("Unknown counter");
+        }
     }
 
     public int sum() {
-        return counters.reduceEntriesToInt(10000, entry -> entry.getValue().intValue(), 0, Integer::sum);
+        return counters.reduceEntriesToInt(10000, Map.Entry::getValue, 0, Integer::sum);
     }
 
     public Set<String> names() {
